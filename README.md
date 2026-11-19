@@ -120,7 +120,73 @@ Each step ends with passing tests (including permission tests and order state-ma
 
 ## Local setup
 
-To be filled in during Step 0 (Windows, Python 3.12+, Git, Neon connection strings in an untracked `.env`).
+Requirements: Windows 10/11, PowerShell, Python 3.12+ (tested on Python 3.13), Git, Neon PostgreSQL connection strings.
+
+### 1. Create and activate virtual environment
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+> If script execution is restricted, run: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+
+### 2. Install dependencies
+
+```powershell
+python -m pip install --upgrade pip
+pip install -r requirements-dev.txt
+```
+
+### 3. Environment configuration
+
+Copy the example environment template and add your Neon credentials:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Ensure `.env` contains:
+- `ENVIRONMENT` (e.g. `development` or `production`)
+- `DATABASE_URL` (Neon pooled connection string)
+- `DIRECT_DATABASE_URL` (Neon direct connection string for migrations)
+- `SECRET_KEY` (secure random secret key)
+
+*(Remember: never commit, print, or share `.env`)*
+
+### 4. Code quality & tests
+
+Run the linter:
+```powershell
+ruff check .
+```
+
+Run unit and integration tests:
+```powershell
+pytest
+```
+
+### 5. Run the API server
+
+From the repository root:
+```powershell
+cd backend
+uvicorn app.main:app --reload
+```
+
+Verify endpoints in your browser or PowerShell:
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/health
+Invoke-RestMethod http://127.0.0.1:8000/health/db
+```
+
+### 6. Database migrations (Alembic)
+
+When running migrations against Neon direct URL:
+```powershell
+cd backend
+alembic upgrade head
+```
 
 ## Repository notes
 

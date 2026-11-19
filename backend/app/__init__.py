@@ -1,0 +1,1 @@
+"""WasteConnect backend application package."""
