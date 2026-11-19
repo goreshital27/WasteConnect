@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WasteConnect Pune - Recyclable Waste Marketplace</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .tab-btn.active {
+      border-bottom: 2px solid #059669;
+      color: #059669;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo -->
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('browse')">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md">
+            <i class="fa-solid fa-recycle text-xl"></i>
+          </div>
+          <div>
+            <span class="text-xl font-bold tracking-tight text-slate-900">Waste<span class="text-emerald-600">Connect</span></span>
+            <span class="hidden sm:inline-block ml-2 px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-800 rounded-full">Pune</span>
+          </div>
+        </div>
+
+        <!-- User Controls / Quick Login -->
+        <div class="flex items-center space-x-3">
+          <!-- Demo Quick Switcher Dropdown -->
+          <div class="relative">
+            <button id="quickLoginBtn" onclick="toggleDropdown('quickLoginDropdown')" class="px-3 py-1.5 text-xs font-medium bg-amber-50 text-amber-900 border border-amber-300 rounded-lg hover:bg-amber-100 flex items-center space-x-1.5 transition">
+              <i class="fa-solid fa-bolt text-amber-600"></i>
+              <span class="hidden md:inline">Demo Switcher</span>
+              <i class="fa-solid fa-chevron-down text-[10px]"></i>
+            </button>
+            <div id="quickLoginDropdown" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50">
+              <div class="px-3 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">Quick Switch Demo Account</div>
+              <button onclick="demoLogin('sunil.scrap@example.com')" class="w-full text-left px-3 py-2 hover:bg-slate-50 text-xs flex items-center justify-between">
+                <div>
+                  <div class="font-medium text-slate-800">Sunil Scrap Traders</div>
+                  <div class="text-[11px] text-slate-500">Wakad (411057)</div>
+                </div>
+                <span class="px-2 py-0.5 text-[10px] bg-blue-100 text-blue-800 rounded">Reseller</span>
+              </button>
+              <button onclick="demoLogin('aarav.sharma@example.com')" class="w-full text-left px-3 py-2 hover:bg-slate-50 text-xs flex items-center justify-between border-t border-slate-100">
+                <div>
+                  <div class="font-medium text-slate-800">Aarav Sharma</div>
+                  <div class="text-[11px] text-slate-500">Wakad (411057)</div>
+                </div>
+                <span class="px-2 py-0.5 text-[10px] bg-slate-100 text-slate-800 rounded">Individual</span>
+              </button>
+              <button onclick="demoLogin('priya.patil@example.com')" class="w-full text-left px-3 py-2 hover:bg-slate-50 text-xs flex items-center justify-between border-t border-slate-100">
+                <div>
+                  <div class="font-medium text-slate-800">Priya Patil</div>
+                  <div class="text-[11px] text-slate-500">Baner (411045)</div>
+                </div>
+                <span class="px-2 py-0.5 text-[10px] bg-slate-100 text-slate-800 rounded">Individual</span>
+              </button>
+              <button onclick="demoLogin('maharashtra.recycling@example.com')" class="w-full text-left px-3 py-2 hover:bg-slate-50 text-xs flex items-center justify-between border-t border-slate-100">
+                <div>
+                  <div class="font-medium text-slate-800">Maharashtra Eco</div>
+                  <div class="text-[11px] text-slate-500">Baner (411045)</div>
+                </div>
+                <span class="px-2 py-0.5 text-[10px] bg-blue-100 text-blue-800 rounded">Reseller</span>
+              </button>
+              <button onclick="demoLogin('sahyadri.recyclers@example.com')" class="w-full text-left px-3 py-2 hover:bg-slate-50 text-xs flex items-center justify-between border-t border-slate-100">
+                <div>
+                  <div class="font-medium text-slate-800">Sahyadri Green</div>
+                  <div class="text-[11px] text-slate-500">Pimpri (411018)</div>
+                </div>
+                <span class="px-2 py-0.5 text-[10px] bg-purple-100 text-purple-800 rounded">Recycler</span>
+              </button>
+              <button onclick="demoLogin('pune.aggregators@example.com')" class="w-full text-left px-3 py-2 hover:bg-slate-50 text-xs flex items-center justify-between border-t border-slate-100">
+                <div>
+                  <div class="font-medium text-slate-800">Pune Central Aggregators</div>
+                  <div class="text-[11px] text-slate-500">Hadapsar (411028)</div>
+                </div>
+                <span class="px-2 py-0.5 text-[10px] bg-emerald-100 text-emerald-800 rounded">Aggregator</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Auth Buttons or Logged User Profile -->
+          <div id="authContainer">
+            <button onclick="openModal('loginModal')" class="px-3.5 py-1.5 text-sm font-medium text-slate-700 hover:text-emerald-600 transition">Log In</button>
+            <button onclick="openModal('registerModal')" class="px-3.5 py-1.5 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shadow-sm transition">Sign Up</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-6 overflow-x-auto text-sm border-t border-slate-100 -mb-px">
+        <button onclick="switchTab('browse')" id="tab-browse" class="tab-btn active py-3 px-1 border-b-2 font-medium flex items-center space-x-2 whitespace-nowrap">
+          <i class="fa-solid fa-store"></i>
+          <span>Marketplace</span>
+        </button>
+        <button onclick="switchTab('create')" id="tab-create" class="tab-btn py-3 px-1 border-b-2 font-medium flex items-center space-x-2 whitespace-nowrap">
+          <i class="fa-solid fa-circle-plus"></i>
+          <span>Post Listing</span>
+        </button>
+        <button onclick="switchTab('myListings')" id="tab-myListings" class="tab-btn py-3 px-1 border-b-2 font-medium flex items-center space-x-2 whitespace-nowrap">
+          <i class="fa-solid fa-list-check"></i>
+          <span>My Listings & Offers</span>
+          <span id="offersBadge" class="hidden px-1.5 py-0.2 text-[10px] bg-emerald-500 text-white rounded-full">0</span>
+        </button>
+        <button onclick="switchTab('myOrders')" id="tab-myOrders" class="tab-btn py-3 px-1 border-b-2 font-medium flex items-center space-x-2 whitespace-nowrap">
+          <i class="fa-solid fa-truck-fast"></i>
+          <span>My Orders</span>
+          <span id="ordersBadge" class="hidden px-1.5 py-0.2 text-[10px] bg-blue-500 text-white rounded-full">0</span>
+        </button>
+        <button onclick="switchTab('rateCard')" id="tab-rateCard" class="tab-btn py-3 px-1 border-b-2 font-medium flex items-center space-x-2 whitespace-nowrap">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Rate Card & Impact</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed top-20 right-4 z-50 hidden max-w-sm w-full bg-white shadow-xl rounded-xl border border-slate-200 p-4 transition duration-300">
+    <div class="flex items-start space-x-3">
+      <div id="toastIcon" class="text-emerald-600 mt-0.5"><i class="fa-solid fa-circle-check text-lg"></i></div>
+      <div class="flex-1">
+        <h4 id="toastTitle" class="text-sm font-semibold text-slate-900">Notification</h4>
+        <p id="toastMessage" class="text-xs text-slate-600 mt-0.5">Details here</p>
+      </div>
+      <button onclick="hideToast()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- 1. BROWSE TAB -->
+    <section id="section-browse" class="space-y-6">
+      <!-- Search & Filters -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+        <div class="flex flex-col md:flex-row items-center gap-3">
+          <!-- Category Filter -->
+          <div class="w-full md:w-1/3">
+            <label class="block text-xs font-semibold text-slate-500 mb-1">Category</label>
+            <select id="filterCategory" onchange="loadListings()" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <option value="">All Categories</option>
+            </select>
+          </div>
+          <!-- Pincode Filter -->
+          <div class="w-full md:w-1/3">
+            <label class="block text-xs font-semibold text-slate-500 mb-1">Pune Pincode / Area</label>
+            <select id="filterPincode" onchange="loadListings()" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <option value="">All Pune Locations</option>
+              <option value="411057">411057 - Wakad / Hinjawadi</option>
+              <option value="411045">411045 - Baner</option>
+              <option value="411014">411014 - Kharadi</option>
+              <option value="411028">411028 - Hadapsar</option>
+              <option value="411018">411018 - Pimpri-Chinchwad</option>
+            </select>
+          </div>
+          <!-- Min Quantity -->
+          <div class="w-full md:w-1/4">
+            <label class="block text-xs font-semibold text-slate-500 mb-1">Min Quantity (kg)</label>
+            <input type="number" id="filterMinQty" placeholder="e.g. 20" min="0" oninput="loadListings()" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <!-- Reset -->
+          <div class="w-full md:w-auto self-end">
+            <button onclick="resetFilters()" class="w-full md:w-auto px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition font-medium">
+              <i class="fa-solid fa-arrow-rotate-left mr-1"></i> Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Listings Grid Header -->
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-bold text-slate-900 flex items-center">
+          <span>Active Recyclable Listings</span>
+          <span id="listingCount" class="ml-2 text-xs bg-slate-200 text-slate-700 px-2.5 py-0.5 rounded-full font-semibold">0</span>
+        </h2>
+        <span class="text-xs text-slate-500">Live Pune listings ready for pickup</span>
+      </div>
+
+      <!-- Listings Grid -->
+      <div id="listingsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+    <!-- 2. CREATE LISTING TAB -->
+    <section id="section-create" class="hidden max-w-2xl mx-auto">
+      <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Post Recyclable Waste Listing</h2>
+          <p class="text-sm text-slate-500 mt-1">Directly connect with certified Pune scrap resellers, aggregators, and recyclers.</p>
+        </div>
+
+        <form id="createListingForm" onsubmit="handleCreateListing(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Title *</label>
+            <input type="text" id="postTitle" required placeholder="e.g. 50 kg Sorted Cardboard & Cartons" class="w-full border border-slate-300 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Waste Category *</label>
+              <select id="postCategory" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <!-- Loaded via JS -->
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Estimated Quantity (kg) *</label>
+              <input type="number" step="0.001" min="0.5" id="postQuantity" required placeholder="e.g. 35.500" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Asking Price per kg (₹) *</label>
+              <input type="number" step="0.01" min="0.5" id="postPrice" required placeholder="e.g. 14.50" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            </div>
+            <div class="flex items-center pt-6">
+              <label class="relative flex items-center cursor-pointer">
+                <input type="checkbox" id="postNegotiable" checked class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+                <span class="ml-2 text-sm text-slate-700 font-medium">Price is negotiable</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Pune Area / Locality *</label>
+              <input type="text" id="postArea" required placeholder="e.g. Wakad" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Pincode *</label>
+              <input type="text" id="postPincode" required placeholder="e.g. 411057" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            </div>
+          </div>
+
+          <div class="pt-4 flex items-center justify-end space-x-3 border-t border-slate-100">
+            <button type="button" onclick="switchTab('browse')" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition font-medium">Cancel</button>
+            <button type="submit" class="px-5 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium shadow-sm transition">
+              <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> Publish Listing
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- 3. MY LISTINGS & OFFERS TAB -->
+    <section id="section-myListings" class="hidden space-y-8">
+      <!-- Seller's Listings -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold text-slate-900 flex items-center">
+            <span>My Posted Listings</span>
+            <span id="myListingsCount" class="ml-2 text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-semibold">0</span>
+          </h2>
+          <button onclick="switchTab('create')" class="text-xs bg-emerald-50 text-emerald-700 font-semibold px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition">
+            + New Listing
+          </button>
+        </div>
+        <div id="myListingsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+
+      <!-- Offers Received as Seller -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold text-slate-900 flex items-center">
+            <span>Offers Received on My Listings</span>
+            <span id="receivedOffersCount" class="ml-2 text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">0</span>
+          </h2>
+          <span class="text-xs text-slate-500">Accepting creates confirmed order & rejects competitors</span>
+        </div>
+        <div id="receivedOffersContainer" class="space-y-3">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+
+      <!-- Offers Sent as Buyer -->
+      <div class="space-y-4">
+        <h2 class="text-lg font-bold text-slate-900 flex items-center">
+          <span>Offers Sent by Me</span>
+          <span id="sentOffersCount" class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-semibold">0</span>
+        </h2>
+        <div id="sentOffersContainer" class="space-y-3">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. MY ORDERS TAB -->
+    <section id="section-myOrders" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900 flex items-center">
+            <span>Active & Completed Orders</span>
+            <span id="ordersCount" class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-semibold">0</span>
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">Track fulfillment state machine: Confirmed ➔ Collected ➔ Delivered ➔ Completed</p>
+        </div>
+        <button onclick="loadOrders()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-medium transition">
+          <i class="fa-solid fa-arrows-rotate mr-1"></i> Refresh
+        </button>
+      </div>
+
+      <div id="ordersContainer" class="space-y-5">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+    <!-- 5. RATE CARD & IMPACT TAB -->
+    <section id="section-rateCard" class="hidden space-y-8">
+      <!-- Environmental & Pune Market Impact -->
+      <div class="space-y-4">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Pune Environmental Impact</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Verified recyclable waste diverted exclusively from Delivered & Completed marketplace orders.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <!-- Total Kg Diverted -->
+          <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-md">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-emerald-100">Diverted from Landfills</span>
+              <i class="fa-solid fa-weight-hanging text-emerald-200 text-xl"></i>
+            </div>
+            <div id="statTotalKg" class="text-3xl font-extrabold mt-2">0.00 kg</div>
+            <div class="text-xs text-emerald-100 mt-1">Verified physical recovery</div>
+          </div>
+
+          <!-- Completed Orders -->
+          <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-5 text-white shadow-md">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-blue-100">Completed Transactions</span>
+              <i class="fa-solid fa-handshake-simple text-blue-200 text-xl"></i>
+            </div>
+            <div id="statTotalOrders" class="text-3xl font-extrabold mt-2">0</div>
+            <div class="text-xs text-blue-100 mt-1">Fulfillment cycles closed</div>
+          </div>
+
+          <!-- CO2 Saved -->
+          <div class="bg-gradient-to-br from-teal-600 to-cyan-700 rounded-2xl p-5 text-white shadow-md">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-teal-100">Estimated CO2 Saved</span>
+              <i class="fa-solid fa-leaf text-teal-200 text-xl"></i>
+            </div>
+            <div id="statCo2Saved" class="text-3xl font-extrabold mt-2">0.00 kg</div>
+            <div class="text-xs text-teal-100 mt-1">Avoided greenhouse emissions</div>
+          </div>
+        </div>
+
+        <!-- Category breakdown -->
+        <div id="impactCategoryBreakdown" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 pt-2">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+
+      <!-- Pune Rate Card Table -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden space-y-3 p-5">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">Pune Recyclable Rate Card</h3>
+          <p class="text-xs text-slate-500">Live aggregated scrap prices calculated from open listings across Pune.</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Waste Category</th>
+                <th class="py-3 px-4">Unit</th>
+                <th class="py-3 px-4">Min Price</th>
+                <th class="py-3 px-4">Avg Price</th>
+                <th class="py-3 px-4">Max Price</th>
+                <th class="py-3 px-4">Open Lots</th>
+                <th class="py-3 px-4">Total Weight</th>
+              </tr>
+            </thead>
+            <tbody id="rateCardTableBody" class="divide-y divide-slate-100">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Make Offer Modal -->
+  <div id="offerModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-base font-bold text-slate-900">Make an Offer</h3>
+        <button onclick="closeModal('offerModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="offerModalListingSummary" class="bg-slate-50 p-3 rounded-xl text-xs space-y-1">
+        <!-- Summary populated via JS -->
+      </div>
+      <form id="submitOfferForm" onsubmit="handleMakeOffer(event)" class="space-y-4">
+        <input type="hidden" id="offerListingId">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Offer Quantity (kg) *</label>
+          <input type="number" step="0.001" min="0.1" id="offerQuantity" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Offer Price per kg (₹) *</label>
+          <input type="number" step="0.01" min="0.1" id="offerPrice" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div class="bg-emerald-50 text-emerald-800 p-3 rounded-lg text-xs font-medium flex items-center justify-between">
+          <span>Total Offer Value:</span>
+          <span id="offerTotalValue" class="text-sm font-bold">₹0.00</span>
+        </div>
+        <div class="flex items-center justify-end space-x-2 pt-2">
+          <button type="button" onclick="closeModal('offerModal')" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+          <button type="submit" class="px-4 py-2 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm">Submit Offer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Record Weight Modal -->
+  <div id="weightModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="weightModalTitle" class="text-base font-bold text-slate-900">Record Stage Weight</h3>
+        <button onclick="closeModal('weightModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="recordWeightForm" onsubmit="handleRecordWeight(event)" class="space-y-4">
+        <input type="hidden" id="weightOrderId">
+        <input type="hidden" id="weightStage">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Stage</label>
+          <input type="text" id="weightStageDisplay" readonly class="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-600 uppercase font-bold text-xs">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Measured Weight (kg) *</label>
+          <input type="number" step="0.001" min="0.01" id="weightValue" required placeholder="e.g. 52.350" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <p class="text-[11px] text-slate-500">Weight is recorded to 3 decimal places and enforced before advancing stage.</p>
+        <div class="flex items-center justify-end space-x-2 pt-2">
+          <button type="button" onclick="closeModal('weightModal')" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+          <button type="submit" class="px-4 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm">Save Weight</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="loginModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-base font-bold text-slate-900">Sign In to WasteConnect</h3>
+        <button onclick="closeModal('loginModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Email</label>
+          <input type="email" id="loginEmail" required placeholder="sunil.scrap@example.com" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+          <input type="password" id="loginPassword" required placeholder="Password123!" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <button type="submit" class="w-full py-2.5 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-sm">
+          Log In
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Register Modal -->
+  <div id="registerModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-base font-bold text-slate-900">Create WasteConnect Account</h3>
+        <button onclick="closeModal('registerModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-0.5">Full Name / Business Name *</label>
+          <input type="text" id="regName" required placeholder="e.g. Rahul Patil" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-0.5">Email *</label>
+            <input type="email" id="regEmail" required placeholder="rahul@example.com" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-0.5">Phone *</label>
+            <input type="text" id="regPhone" required placeholder="9820011999" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-0.5">Role *</label>
+            <select id="regRole" required class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <option value="individual">Individual (Household)</option>
+              <option value="reseller">Reseller (Raddiwala)</option>
+              <option value="aggregator">Aggregator</option>
+              <option value="recycler">Recycler</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-0.5">Password *</label>
+            <input type="password" id="regPassword" required placeholder="Min 6 chars" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-0.5">Pune Area *</label>
+            <input type="text" id="regArea" required placeholder="e.g. Baner" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-0.5">Pincode *</label>
+            <input type="text" id="regPincode" required placeholder="e.g. 411045" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+        </div>
+        <button type="submit" class="w-full mt-2 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-sm">
+          Register Account
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4">
+      <p class="font-medium text-slate-700">WasteConnect Demo &bull; Recyclable-Waste Marketplace for Pune</p>
+      <p class="mt-1 text-slate-400">Demo data, prices illustrative</p>
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

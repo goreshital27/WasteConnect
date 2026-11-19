@@ -5,3 +5,5 @@ pydantic==2.10.6
 pydantic-settings==2.8.1
 psycopg[binary]==3.2.5
 alembic==1.14.1
+argon2-cffi==25.1.0
+pyjwt==2.15.1
