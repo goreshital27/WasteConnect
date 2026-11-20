@@ -1,10 +1,11 @@
+from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
 from app.core.database import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.modules.auth.models import User
 from app.modules.catalog.models import WasteCategory
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Numeric, String
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
@@ -34,6 +35,11 @@ class Listing(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     area: Mapped[str] = mapped_column(String(100), nullable=False)
     pincode: Mapped[str] = mapped_column(String(10), index=True, nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="open", nullable=False)
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
 
     seller: Mapped[User] = relationship("User", lazy="joined")
     category: Mapped[WasteCategory] = relationship("WasteCategory", lazy="joined")

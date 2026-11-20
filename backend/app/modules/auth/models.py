@@ -2,14 +2,14 @@ from app.core.database import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from sqlalchemy import CheckConstraint, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-VALID_ROLES = ("individual", "reseller", "aggregator", "recycler")
+VALID_ROLES = ("individual", "reseller", "aggregator", "recycler", "processor", "business")
 
 
 class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint(
-            "role IN ('individual', 'reseller', 'aggregator', 'recycler')",
+            "role IN ('individual', 'reseller', 'aggregator', 'recycler', 'processor', 'business')",
             name="ck_users_role",
         ),
     )

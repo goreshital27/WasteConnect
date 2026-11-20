@@ -24,9 +24,10 @@ def create_listing(
     db: Annotated[Session, Depends(get_db)],
 ) -> dict[str, Any]:
     listing = ListingService.create_listing(db, current_user.id, req)
+    enriched = ListingService.enrich_listing_dict(db, listing)
     return {
         "code": "SUCCESS",
-        "data": ListingResponse.model_validate(listing).model_dump(mode="json"),
+        "data": ListingResponse.model_validate(enriched).model_dump(mode="json"),
     }
 
 
@@ -39,6 +40,7 @@ def list_listings(
     db: Annotated[Session, Depends(get_db)],
     category_id: UUID | None = None,
     category: str | None = None,
+    stream: str | None = None,
     pincode: str | None = None,
     min_quantity: Annotated[Decimal | None, Query(gt=0)] = None,
     status_filter: str | None = "open",
@@ -47,13 +49,18 @@ def list_listings(
         db,
         category_id=category_id,
         category_code=category,
+        stream=stream,
         pincode=pincode,
         min_quantity=min_quantity,
         status_filter=status_filter,
     )
+    data = []
+    for item in listings:
+        enriched = ListingService.enrich_listing_dict(db, item)
+        data.append(ListingResponse.model_validate(enriched).model_dump(mode="json"))
     return {
         "code": "SUCCESS",
-        "data": [ListingResponse.model_validate(item).model_dump(mode="json") for item in listings],
+        "data": data,
     }
 
 
@@ -67,9 +74,13 @@ def my_listings(
     db: Annotated[Session, Depends(get_db)],
 ) -> dict[str, Any]:
     listings = ListingService.get_seller_listings(db, current_user.id)
+    data = []
+    for item in listings:
+        enriched = ListingService.enrich_listing_dict(db, item)
+        data.append(ListingResponse.model_validate(enriched).model_dump(mode="json"))
     return {
         "code": "SUCCESS",
-        "data": [ListingResponse.model_validate(item).model_dump(mode="json") for item in listings],
+        "data": data,
     }
 
 
@@ -88,9 +99,10 @@ def get_listing(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "LISTING_NOT_FOUND", "detail": "Listing not found"},
         )
+    enriched = ListingService.enrich_listing_dict(db, listing)
     return {
         "code": "SUCCESS",
-        "data": ListingResponse.model_validate(listing).model_dump(mode="json"),
+        "data": ListingResponse.model_validate(enriched).model_dump(mode="json"),
     }
 
 
@@ -105,7 +117,8 @@ def cancel_listing(
     db: Annotated[Session, Depends(get_db)],
 ) -> dict[str, Any]:
     listing = ListingService.cancel_listing(db, listing_id, current_user.id)
+    enriched = ListingService.enrich_listing_dict(db, listing)
     return {
         "code": "SUCCESS",
-        "data": ListingResponse.model_validate(listing).model_dump(mode="json"),
+        "data": ListingResponse.model_validate(enriched).model_dump(mode="json"),
     }

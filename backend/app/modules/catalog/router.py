@@ -16,8 +16,9 @@ router = APIRouter(tags=["Catalog"])
 )
 def list_categories(
     db: Annotated[Session, Depends(get_db)],
+    stream: str | None = None,
 ) -> dict[str, Any]:
-    categories = CatalogService.get_active_categories(db)
+    categories = CatalogService.get_active_categories(db, stream=stream)
     return {
         "code": "SUCCESS",
         "data": [CategoryResponse.model_validate(c).model_dump(mode="json") for c in categories],

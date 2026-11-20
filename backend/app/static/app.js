@@ -67,6 +67,9 @@ window.addEventListener("click", (e) => {
   if (!e.target.closest("#quickLoginBtn") && !e.target.closest("#quickLoginDropdown")) {
     document.getElementById("quickLoginDropdown")?.classList.add("hidden");
   }
+  if (!e.target.closest("#notifBellBtn") && !e.target.closest("#notifDropdown")) {
+    document.getElementById("notifDropdown")?.classList.add("hidden");
+  }
 });
 
 // Modal helpers
@@ -81,21 +84,28 @@ function closeModal(id) {
 // Navigation Tab Switcher
 function switchTab(tab) {
   currentTab = tab;
-  const sections = ["browse", "create", "myListings", "myOrders", "rateCard"];
+  const sections = ["browse", "create", "myListings", "requirements", "myOrders", "rateCard"];
   sections.forEach((s) => {
     const secEl = document.getElementById(`section-${s}`);
     const tabEl = document.getElementById(`tab-${s}`);
     if (s === tab) {
-      secEl.classList.remove("hidden");
+      secEl?.classList.remove("hidden");
       tabEl?.classList.add("active");
     } else {
-      secEl.classList.add("hidden");
+      secEl?.classList.add("hidden");
       tabEl?.classList.remove("active");
     }
   });
 
   if (tab === "browse") loadListings();
+  if (tab === "create") {
+    if (currentUser) {
+      document.getElementById("postArea").value = currentUser.area || "";
+      document.getElementById("postPincode").value = currentUser.pincode || "";
+    }
+  }
   if (tab === "myListings") loadMyListingsAndOffers();
+  if (tab === "requirements") loadRequirements();
   if (tab === "myOrders") loadOrders();
   if (tab === "rateCard") loadRateCardAndImpact();
 }
@@ -108,6 +118,7 @@ async function initApp() {
       const res = await api("/me");
       currentUser = res.data;
       updateAuthUI();
+      loadNotifications();
     } catch {
       logout();
     }
@@ -127,15 +138,24 @@ async function loadCategories() {
     const filterCat = document.getElementById("filterCategory");
     filterCat.innerHTML = '<option value="">All Categories</option>';
     categories.forEach((c) => {
-      filterCat.innerHTML += `<option value="${c.code}">${c.name}</option>`;
+      filterCat.innerHTML += `<option value="${c.code}">${c.name} (${c.stream.toUpperCase()})</option>`;
     });
 
     // Populate create listing dropdown
     const postCat = document.getElementById("postCategory");
     postCat.innerHTML = "";
     categories.forEach((c) => {
-      postCat.innerHTML += `<option value="${c.id}">${c.name} (${c.unit})</option>`;
+      postCat.innerHTML += `<option value="${c.id}">${c.name} (${c.unit}) - ${c.stream.toUpperCase()}</option>`;
     });
+
+    // Populate post requirement dropdown
+    const reqCat = document.getElementById("reqCategory");
+    if (reqCat) {
+      reqCat.innerHTML = "";
+      categories.forEach((c) => {
+        reqCat.innerHTML += `<option value="${c.id}">${c.name} (${c.stream.toUpperCase()})</option>`;
+      });
+    }
   } catch (err) {
     console.error("Failed to load categories:", err);
   }
@@ -148,6 +168,8 @@ function updateAuthUI() {
     const roleColors = {
       individual: "bg-slate-100 text-slate-800",
       reseller: "bg-blue-100 text-blue-800",
+      processor: "bg-teal-100 text-teal-800",
+      business: "bg-orange-100 text-orange-800",
       aggregator: "bg-emerald-100 text-emerald-800",
       recycler: "bg-purple-100 text-purple-800"
     };
@@ -166,14 +188,22 @@ function updateAuthUI() {
       </div>
     `;
 
-    // Pre-fill create listing location
-    document.getElementById("postArea").value = currentUser.area || "";
-    document.getElementById("postPincode").value = currentUser.pincode || "";
+    // Pre-fill location
+    const pArea = document.getElementById("postArea");
+    if (pArea) pArea.value = currentUser.area || "";
+    const pPin = document.getElementById("postPincode");
+    if (pPin) pPin.value = currentUser.pincode || "";
+    const rPin = document.getElementById("reqPincode");
+    if (rPin) rPin.value = currentUser.pincode || "";
+
+    loadNotifications();
   } else {
     container.innerHTML = `
       <button onclick="openModal('loginModal')" class="px-3.5 py-1.5 text-xs sm:text-sm font-medium text-slate-700 hover:text-emerald-600 transition">Log In</button>
       <button onclick="openModal('registerModal')" class="px-3.5 py-1.5 text-xs sm:text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shadow-sm transition">Sign Up</button>
     `;
+    const notifBadge = document.getElementById("notifBadge");
+    if (notifBadge) notifBadge.classList.add("hidden");
   }
 }
 
@@ -263,11 +293,13 @@ async function loadListings() {
   const cat = document.getElementById("filterCategory").value;
   const pin = document.getElementById("filterPincode").value;
   const minQty = document.getElementById("filterMinQty").value;
+  const stream = document.getElementById("filterStream")?.value;
 
   const params = new URLSearchParams();
   if (cat) params.append("category", cat);
   if (pin) params.append("pincode", pin);
   if (minQty && Number(minQty) > 0) params.append("min_quantity", minQty);
+  if (stream) params.append("stream", stream);
 
   try {
     const res = await api(`/listings?${params.toString()}`);
@@ -283,6 +315,8 @@ function resetFilters() {
   document.getElementById("filterCategory").value = "";
   document.getElementById("filterPincode").value = "";
   document.getElementById("filterMinQty").value = "";
+  const fStream = document.getElementById("filterStream");
+  if (fStream) fStream.value = "";
   loadListings();
 }
 
@@ -293,7 +327,7 @@ function renderListings() {
       <div class="col-span-full py-12 text-center bg-white rounded-2xl border border-slate-200">
         <i class="fa-solid fa-boxes-packing text-4xl text-slate-300"></i>
         <h3 class="text-sm font-semibold text-slate-700 mt-2">No listings match your filter</h3>
-        <p class="text-xs text-slate-500 mt-1">Try resetting the category, location, or minimum quantity.</p>
+        <p class="text-xs text-slate-500 mt-1">Try resetting the category, stream, location, or minimum quantity.</p>
       </div>
     `;
     return;
@@ -303,18 +337,47 @@ function renderListings() {
     const isOwner = currentUser && l.seller_id === currentUser.id;
     const estTotal = (Number(l.quantity_kg) * Number(l.price_per_kg)).toFixed(2);
     const dateStr = new Date(l.created_at).toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+    const isWet = l.category?.stream === "wet";
+    const isExpired = l.is_expired;
+    const matchesCount = l.matches_count || 0;
+
+    let priceDisplay = `₹${Number(l.price_per_kg).toFixed(2)} <span class="text-[10px] font-normal text-slate-400">/kg</span>`;
+    if (Number(l.price_per_kg) < 0) {
+      priceDisplay = `-₹${Math.abs(Number(l.price_per_kg)).toFixed(2)} <span class="text-[10px] font-semibold text-rose-500">/kg (Disposal Fee)</span>`;
+    } else if (Number(l.price_per_kg) === 0) {
+      priceDisplay = `₹0.00 <span class="text-[10px] font-semibold text-emerald-600">/kg (Free Disposal)</span>`;
+    }
 
     return `
-      <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
+      <div class="bg-white rounded-2xl border ${isExpired ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200'} p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
         <div>
-          <div class="flex items-center justify-between">
-            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              ${l.category.name}
-            </span>
+          <div class="flex items-center justify-between flex-wrap gap-1">
+            <div class="flex items-center space-x-1.5 flex-wrap gap-1">
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${isWet ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}">
+                ${isWet ? '<i class="fa-solid fa-leaf mr-1"></i>' : ''}${l.category.name}
+              </span>
+              ${matchesCount > 0 ? `
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white shadow-xs">
+                  <i class="fa-solid fa-fire mr-0.5"></i> ${matchesCount} Match${matchesCount > 1 ? 'es' : ''}
+                </span>
+              ` : ''}
+              ${isExpired ? `
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white shadow-xs">
+                  <i class="fa-solid fa-clock mr-0.5"></i> Expired
+                </span>
+              ` : ''}
+            </div>
             <span class="text-[11px] text-slate-400">${dateStr}</span>
           </div>
 
           <h3 class="text-base font-bold text-slate-900 mt-2.5 line-clamp-1">${l.title}</h3>
+
+          ${isWet ? `
+            <div class="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-[11px] font-medium text-amber-800 flex items-center space-x-1.5">
+              <i class="fa-solid fa-triangle-exclamation text-amber-600 flex-shrink-0"></i>
+              <span>Wet waste is handled by authorised processors only.</span>
+            </div>
+          ` : ''}
 
           <div class="mt-3 bg-slate-50 p-3 rounded-xl flex items-center justify-between text-xs">
             <div>
@@ -323,7 +386,7 @@ function renderListings() {
             </div>
             <div class="text-right">
               <span class="text-slate-500 block">Asking Rate</span>
-              <span class="text-sm font-extrabold text-emerald-600">₹${Number(l.price_per_kg).toFixed(2)} <span class="text-[10px] font-normal text-slate-400">/kg</span></span>
+              <span class="text-sm font-extrabold text-slate-900">${priceDisplay}</span>
             </div>
           </div>
 
@@ -348,6 +411,10 @@ function renderListings() {
           ${
             isOwner
               ? `<span class="px-3 py-1.5 text-xs font-semibold bg-slate-100 text-slate-600 rounded-lg">Your Listing</span>`
+              : isExpired
+              ? `<button disabled class="px-3.5 py-1.5 text-xs font-semibold bg-rose-100 text-rose-700 rounded-lg cursor-not-allowed">
+                   <i class="fa-solid fa-ban mr-1"></i> Expired
+                 </button>`
               : `<button onclick="openOfferModal('${l.id}')" class="px-4 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-sm flex items-center space-x-1">
                    <span>Make Offer</span>
                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
@@ -893,6 +960,226 @@ async function loadRateCardAndImpact() {
     }).join("");
   } catch (err) {
     console.error(err);
+  }
+}
+
+// Notifications Management
+async function loadNotifications() {
+  if (!token || !currentUser) {
+    const badge = document.getElementById("notifBadge");
+    if (badge) badge.classList.add("hidden");
+    return;
+  }
+
+  try {
+    const res = await api("/notifications");
+    const { items, unread_count } = res.data;
+
+    const badge = document.getElementById("notifBadge");
+    if (badge) {
+      if (unread_count > 0) {
+        badge.innerText = unread_count;
+        badge.classList.remove("hidden");
+      } else {
+        badge.classList.add("hidden");
+      }
+    }
+
+    const list = document.getElementById("notifDropdownList");
+    if (list) {
+      if (!items || !items.length) {
+        list.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">No notifications yet</div>`;
+      } else {
+        list.innerHTML = items.map((n) => {
+          const isUnread = !n.read_at;
+          const timeStr = new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          return `
+            <div onclick="markNotificationRead('${n.id}')" class="p-3 hover:bg-slate-50 cursor-pointer transition flex items-start space-x-2.5 ${isUnread ? 'bg-emerald-50/40' : ''}">
+              <div class="mt-0.5 text-xs ${isUnread ? 'text-emerald-600' : 'text-slate-400'}">
+                <i class="fa-solid ${isUnread ? 'fa-bell text-emerald-500' : 'fa-check text-slate-400'}"></i>
+              </div>
+              <div class="flex-1 text-xs">
+                <p class="${isUnread ? 'font-semibold text-slate-900' : 'text-slate-600'}">${n.message}</p>
+                <span class="text-[10px] text-slate-400 mt-0.5 block">${timeStr}</span>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load notifications:", err);
+  }
+}
+
+async function markNotificationRead(id) {
+  try {
+    await api(`/notifications/${id}/read`, { method: "POST" });
+    loadNotifications();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function markAllNotificationsRead() {
+  try {
+    await api("/notifications/read-all", { method: "POST" });
+    showToast("All notifications marked as read");
+    loadNotifications();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// Requirements Management
+async function loadRequirements() {
+  try {
+    // 1. Load all open requirements
+    const openRes = await api("/requirements");
+    const openReqs = openRes.data;
+    document.getElementById("allReqCount").innerText = openReqs.length;
+
+    const allList = document.getElementById("allRequirementsList");
+    if (!openReqs.length) {
+      allList.innerHTML = `
+        <div class="col-span-full py-8 text-center bg-white rounded-xl border border-slate-200 text-xs text-slate-400">
+          No open buyer requirements posted yet.
+        </div>
+      `;
+    } else {
+      allList.innerHTML = openReqs.map((r) => {
+        const estBudget = (Number(r.quantity_kg) * Number(r.max_price_per_kg)).toFixed(2);
+        const dateStr = new Date(r.created_at).toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+        const isMine = currentUser && r.buyer_id === currentUser.id;
+
+        return `
+          <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                  ${r.category.name}
+                </span>
+                <span class="text-[11px] text-slate-400">${dateStr}</span>
+              </div>
+              <div class="mt-2.5 text-xs text-slate-500">
+                Buyer: <span class="font-semibold text-slate-800">${r.buyer.name}</span> (<span class="capitalize">${r.buyer.role}</span>)
+              </div>
+              <div class="mt-2 bg-slate-50 p-2.5 rounded-lg flex items-center justify-between text-xs">
+                <div>
+                  <span class="text-slate-400 block text-[10px]">Demanded Quantity</span>
+                  <span class="font-bold text-slate-900">${Number(r.quantity_kg).toFixed(2)} kg</span>
+                </div>
+                <div class="text-right">
+                  <span class="text-slate-400 block text-[10px]">Max Price</span>
+                  <span class="font-bold text-emerald-600">₹${Number(r.max_price_per_kg).toFixed(2)}/kg</span>
+                </div>
+              </div>
+              <div class="mt-2 text-xs text-slate-500">
+                <i class="fa-solid fa-location-dot text-slate-400 mr-1"></i> Target Pincode: <span class="font-bold text-slate-700">${r.pincode}</span>
+              </div>
+            </div>
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span class="text-slate-400">Est. Budget: <span class="font-bold text-slate-700">₹${estBudget}</span></span>
+              ${isMine ? `
+                <button onclick="closeRequirement('${r.id}')" class="px-2.5 py-1 text-[11px] border border-rose-200 text-rose-600 hover:bg-rose-50 rounded font-medium">
+                  Close Demand
+                </button>
+              ` : `
+                <span class="text-emerald-600 font-medium">Open Demand</span>
+              `}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // 2. Load my requirements if logged in
+    const myList = document.getElementById("myRequirementsList");
+    if (!currentUser) {
+      myList.innerHTML = `<div class="col-span-full py-6 text-center text-xs text-slate-400 bg-white rounded-xl border border-slate-200">Log in to view or manage your posted requirements.</div>`;
+      document.getElementById("myReqCount").innerText = 0;
+      return;
+    }
+
+    const myRes = await api("/requirements/mine");
+    const myReqs = myRes.data;
+    document.getElementById("myReqCount").innerText = myReqs.length;
+
+    if (!myReqs.length) {
+      myList.innerHTML = `<div class="col-span-full py-6 text-center text-xs text-slate-400 bg-white rounded-xl border border-slate-200">You haven't posted any procurement requirements yet.</div>`;
+    } else {
+      myList.innerHTML = myReqs.map((r) => {
+        const isOpen = r.status === "open";
+        return `
+          <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-900">${r.category.name}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isOpen ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">
+                  ${r.status}
+                </span>
+              </div>
+              <div class="mt-2 text-xs text-slate-600 flex justify-between">
+                <span>Demand: <strong>${Number(r.quantity_kg).toFixed(2)} kg</strong></span>
+                <span>Max: <strong class="text-emerald-600">₹${Number(r.max_price_per_kg).toFixed(2)}/kg</strong></span>
+              </div>
+              <div class="mt-1 text-[11px] text-slate-500">
+                Pincode: <strong>${r.pincode}</strong>
+              </div>
+            </div>
+            ${isOpen ? `
+              <div class="pt-2 border-t border-slate-100">
+                <button onclick="closeRequirement('${r.id}')" class="w-full py-1 text-xs text-rose-600 border border-rose-200 hover:bg-rose-50 rounded-lg transition font-medium">
+                  Close Requirement
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join("");
+    }
+  } catch (err) {
+    console.error("Failed to load requirements:", err);
+  }
+}
+
+async function handleCreateRequirement(e) {
+  e.preventDefault();
+  if (!currentUser) {
+    showToast("Please log in first", "error");
+    openModal("loginModal");
+    return;
+  }
+
+  const payload = {
+    category_id: document.getElementById("reqCategory").value,
+    quantity_kg: document.getElementById("reqQuantity").value,
+    max_price_per_kg: document.getElementById("reqMaxPrice").value,
+    pincode: document.getElementById("reqPincode").value,
+  };
+
+  try {
+    await api("/requirements", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    showToast("Requirement posted successfully! Matching sellers will be alerted.");
+    document.getElementById("createRequirementForm").reset();
+    loadRequirements();
+    loadNotifications();
+  } catch (err) {
+    // Handled
+  }
+}
+
+async function closeRequirement(id) {
+  if (!confirm("Are you sure you want to close this requirement?")) return;
+  try {
+    await api(`/requirements/${id}/close`, { method: "POST" });
+    showToast("Requirement closed");
+    loadRequirements();
+  } catch (err) {
+    // Handled
   }
 }
 

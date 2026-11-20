@@ -1,4 +1,5 @@
 import sys
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -11,12 +12,15 @@ from app.core.security import hash_password  # noqa: E402
 from app.modules.auth.models import User  # noqa: E402
 from app.modules.catalog.models import WasteCategory  # noqa: E402
 from app.modules.listings.models import Listing  # noqa: E402
+from app.modules.matching.service import MatchingService  # noqa: E402
+from app.modules.notifications.models import Notification  # noqa: E402
 from app.modules.offers.models import Offer  # noqa: E402
 from app.modules.orders.models import (  # noqa: E402
     Order,
     OrderStatusHistory,
     WeightRecord,
 )
+from app.modules.requirements.models import Requirement  # noqa: E402
 from sqlalchemy import delete  # noqa: E402
 
 DEMO_PASSWORD = "Password123!"
@@ -30,6 +34,8 @@ def seed() -> None:
     db = session_factory()
     try:
         print("Cleaning previous demo data...")
+        db.execute(delete(Notification))
+        db.execute(delete(Requirement))
         db.execute(delete(WeightRecord))
         db.execute(delete(OrderStatusHistory))
         db.execute(delete(Order))
@@ -39,28 +45,41 @@ def seed() -> None:
         db.execute(delete(User))
         db.commit()
 
-        print("Seeding waste categories...")
+        print("Seeding waste categories (dry + wet)...")
         categories_data = [
-            ("paper", "Office Paper & Books", "kg"),
-            ("newspaper", "Old Newspaper (Raddi)", "kg"),
-            ("cardboard", "Corrugated Cardboard / Cartons", "kg"),
-            ("pet", "PET Bottles & Poly Containers", "kg"),
-            ("hdpe", "HDPE Rigid Plastics & Cans", "kg"),
-            ("iron", "Scrap Iron & Castings", "kg"),
-            ("steel", "Stainless Steel (SS) Scrap", "kg"),
-            ("aluminium", "Aluminium Scrap & Utensils", "kg"),
-            ("copper", "Copper Wire & Scrap", "kg"),
-            ("glass", "Glass Bottles & Cullet", "kg"),
+            # Dry categories
+            ("paper", "Office Paper & Books", "kg", "dry", False, None),
+            ("newspaper", "Old Newspaper (Raddi)", "kg", "dry", False, None),
+            ("cardboard", "Corrugated Cardboard / Cartons", "kg", "dry", False, None),
+            ("pet", "PET Bottles & Poly Containers", "kg", "dry", False, None),
+            ("hdpe", "HDPE Rigid Plastics & Cans", "kg", "dry", False, None),
+            ("iron", "Scrap Iron & Castings", "kg", "dry", False, None),
+            ("steel", "Stainless Steel (SS) Scrap", "kg", "dry", False, None),
+            ("aluminium", "Aluminium Scrap & Utensils", "kg", "dry", False, None),
+            ("copper", "Copper Wire & Scrap", "kg", "dry", False, None),
+            ("glass", "Glass Bottles & Cullet", "kg", "dry", False, None),
+            # Wet categories (allows zero/negative price, has expiry)
+            ("food_waste", "Commercial & Kitchen Food Waste", "kg", "wet", True, 24),
+            ("garden_waste", "Garden Waste & Organic Greens", "kg", "wet", True, 48),
         ]
         cat_map: dict[str, WasteCategory] = {}
-        for code, name, unit in categories_data:
-            cat = WasteCategory(code=code, name=name, unit=unit, is_active=True)
+        for code, name, unit, stream, zero_neg, exp_h in categories_data:
+            cat = WasteCategory(
+                code=code,
+                name=name,
+                unit=unit,
+                stream=stream,
+                allows_zero_or_negative_price=zero_neg,
+                expiry_hours=exp_h,
+                is_active=True,
+            )
             db.add(cat)
             cat_map[code] = cat
         db.flush()
 
-        print("Seeding demo users across Pune...")
+        print("Seeding demo users across Pune (Households, Resellers, Processors, Businesses)...")
         users_data = [
+            # Households (Individual)
             (
                 "Aarav Sharma",
                 "aarav.sharma@example.com",
@@ -101,6 +120,7 @@ def seed() -> None:
                 "Hadapsar",
                 "411028",
             ),
+            # Resellers (Scrap dealers)
             (
                 "Sunil Scrap Traders",
                 "sunil.scrap@example.com",
@@ -125,6 +145,7 @@ def seed() -> None:
                 "Pimpri",
                 "411018",
             ),
+            # Aggregator & Recycler
             (
                 "Pune Aggregators",
                 "pune.agg@example.com",
@@ -140,6 +161,40 @@ def seed() -> None:
                 "recycler",
                 "Pimpri",
                 "411018",
+            ),
+            # Processors (Wet waste buyers)
+            (
+                "Pune Biogas Energy",
+                "pune.biogas@example.com",
+                "9820055001",
+                "processor",
+                "Hadapsar",
+                "411028",
+            ),
+            (
+                "EcoCompost Pune Ltd",
+                "ecocompost.pune@example.com",
+                "9820055002",
+                "processor",
+                "Baner",
+                "411045",
+            ),
+            # Businesses (Hotels, restaurants, societies; can sell wet/dry waste)
+            (
+                "Hotel Marigold Baner",
+                "marigold.hotel@example.com",
+                "9820066001",
+                "business",
+                "Baner",
+                "411045",
+            ),
+            (
+                "Amanora Town Society",
+                "amanora.society@example.com",
+                "9820066002",
+                "business",
+                "Hadapsar",
+                "411028",
             ),
         ]
 
@@ -158,8 +213,10 @@ def seed() -> None:
             user_map[email] = user
         db.flush()
 
-        print("Seeding ~25 listings with plausible prices & quantities...")
+        now = datetime.now(UTC)
+        print("Seeding ~29 listings (dry scrap + wet waste with expiry)...")
         listings_spec = [
+            # Dry listings
             (
                 "aarav.sharma@example.com",
                 "newspaper",
@@ -170,6 +227,7 @@ def seed() -> None:
                 "Wakad",
                 "411057",
                 "open",
+                None,
             ),
             (
                 "aarav.sharma@example.com",
@@ -181,6 +239,7 @@ def seed() -> None:
                 "Wakad",
                 "411057",
                 "open",
+                None,
             ),
             (
                 "aarav.sharma@example.com",
@@ -192,6 +251,7 @@ def seed() -> None:
                 "Wakad",
                 "411057",
                 "sold",
+                None,
             ),
             (
                 "priya.patil@example.com",
@@ -203,6 +263,7 @@ def seed() -> None:
                 "Baner",
                 "411045",
                 "open",
+                None,
             ),
             (
                 "priya.patil@example.com",
@@ -214,6 +275,7 @@ def seed() -> None:
                 "Baner",
                 "411045",
                 "open",
+                None,
             ),
             (
                 "priya.patil@example.com",
@@ -225,6 +287,7 @@ def seed() -> None:
                 "Baner",
                 "411045",
                 "sold",
+                None,
             ),
             (
                 "rohit.d@example.com",
@@ -236,6 +299,7 @@ def seed() -> None:
                 "Hinjawadi",
                 "411057",
                 "open",
+                None,
             ),
             (
                 "rohit.d@example.com",
@@ -247,6 +311,7 @@ def seed() -> None:
                 "Hinjawadi",
                 "411057",
                 "open",
+                None,
             ),
             (
                 "rohit.d@example.com",
@@ -258,6 +323,7 @@ def seed() -> None:
                 "Hinjawadi",
                 "411057",
                 "sold",
+                None,
             ),
             (
                 "ananya.k@example.com",
@@ -269,6 +335,7 @@ def seed() -> None:
                 "Kharadi",
                 "411014",
                 "open",
+                None,
             ),
             (
                 "ananya.k@example.com",
@@ -280,6 +347,7 @@ def seed() -> None:
                 "Kharadi",
                 "411014",
                 "open",
+                None,
             ),
             (
                 "ananya.k@example.com",
@@ -291,6 +359,7 @@ def seed() -> None:
                 "Kharadi",
                 "411014",
                 "sold",
+                None,
             ),
             (
                 "vikram.j@example.com",
@@ -302,6 +371,7 @@ def seed() -> None:
                 "Hadapsar",
                 "411028",
                 "open",
+                None,
             ),
             (
                 "vikram.j@example.com",
@@ -313,6 +383,7 @@ def seed() -> None:
                 "Hadapsar",
                 "411028",
                 "open",
+                None,
             ),
             (
                 "vikram.j@example.com",
@@ -324,6 +395,7 @@ def seed() -> None:
                 "Hadapsar",
                 "411028",
                 "cancelled",
+                None,
             ),
             (
                 "sunil.scrap@example.com",
@@ -335,6 +407,7 @@ def seed() -> None:
                 "Wakad",
                 "411057",
                 "open",
+                None,
             ),
             (
                 "sunil.scrap@example.com",
@@ -346,6 +419,7 @@ def seed() -> None:
                 "Wakad",
                 "411057",
                 "open",
+                None,
             ),
             (
                 "sunil.scrap@example.com",
@@ -357,6 +431,7 @@ def seed() -> None:
                 "Wakad",
                 "411057",
                 "sold",
+                None,
             ),
             (
                 "maha.eco@example.com",
@@ -368,6 +443,7 @@ def seed() -> None:
                 "Baner",
                 "411045",
                 "open",
+                None,
             ),
             (
                 "maha.eco@example.com",
@@ -379,6 +455,7 @@ def seed() -> None:
                 "Baner",
                 "411045",
                 "open",
+                None,
             ),
             (
                 "maha.eco@example.com",
@@ -390,6 +467,7 @@ def seed() -> None:
                 "Baner",
                 "411045",
                 "open",
+                None,
             ),
             (
                 "pimpri.scrap@example.com",
@@ -401,6 +479,7 @@ def seed() -> None:
                 "Pimpri",
                 "411018",
                 "open",
+                None,
             ),
             (
                 "pimpri.scrap@example.com",
@@ -412,6 +491,7 @@ def seed() -> None:
                 "Pimpri",
                 "411018",
                 "open",
+                None,
             ),
             (
                 "pimpri.scrap@example.com",
@@ -423,6 +503,7 @@ def seed() -> None:
                 "Pimpri",
                 "411018",
                 "open",
+                None,
             ),
             (
                 "pimpri.scrap@example.com",
@@ -434,11 +515,85 @@ def seed() -> None:
                 "Pimpri",
                 "411018",
                 "open",
+                None,
+            ),
+            # 4 Wet listings
+            (
+                "marigold.hotel@example.com",
+                "food_waste",
+                "Hotel Kitchen Fresh Buffet & Preparation Scrap",
+                "220.0",
+                "0.00",
+                False,
+                "Baner",
+                "411045",
+                "open",
+                now + timedelta(hours=20),
+            ),
+            (
+                "marigold.hotel@example.com",
+                "food_waste",
+                "Bulk Food Waste Lot (Processor Disposal Fee Paid)",
+                "350.0",
+                "-1.50",
+                True,
+                "Baner",
+                "411045",
+                "open",
+                now + timedelta(hours=18),
+            ),
+            (
+                "amanora.society@example.com",
+                "garden_waste",
+                "Township Lawnmower Greens & Tree Trimmings",
+                "450.0",
+                "0.00",
+                False,
+                "Hadapsar",
+                "411028",
+                "open",
+                now + timedelta(hours=44),
+            ),
+            (
+                "amanora.society@example.com",
+                "food_waste",
+                "Residential Society Segregated Kitchen Compostable Waste",
+                "180.0",
+                "1.00",
+                True,
+                "Hadapsar",
+                "411028",
+                "open",
+                now + timedelta(hours=22),
+            ),
+            # 1 Expired listing for testing expired rules
+            (
+                "marigold.hotel@example.com",
+                "food_waste",
+                "Expired Wet Waste Lot (Past Expiry Window)",
+                "90.0",
+                "0.00",
+                False,
+                "Baner",
+                "411045",
+                "open",
+                now - timedelta(hours=5),
             ),
         ]
 
         created_listings: list[Listing] = []
-        for s_email, c_code, title, qty, price, neg, area, pin, status_str in listings_spec:
+        for (
+            s_email,
+            c_code,
+            title,
+            qty,
+            price,
+            neg,
+            area,
+            pin,
+            status_str,
+            exp_time,
+        ) in listings_spec:
             seller = user_map[s_email]
             cat = cat_map[c_code]
             listing = Listing(
@@ -451,13 +606,14 @@ def seed() -> None:
                 area=area,
                 pincode=pin,
                 status=status_str,
+                expires_at=exp_time,
             )
             db.add(listing)
             created_listings.append(listing)
         db.flush()
 
-        print("Seeding offers and orders across multiple statuses...")
-        # Order 1: Confirmed (Aarav's iron sold to Sunil Scrap)
+        print("Seeding demo orders...")
+        # Order 1: Confirmed
         iron_listing = created_listings[2]
         offer1 = Offer(
             listing_id=iron_listing.id,
@@ -494,7 +650,7 @@ def seed() -> None:
             )
         )
 
-        # Order 2: Collected (Priya's glass sold to Maharashtra Recycling)
+        # Order 2: Collected
         glass_listing = created_listings[5]
         offer2 = Offer(
             listing_id=glass_listing.id,
@@ -532,7 +688,7 @@ def seed() -> None:
         )
         db.add(WeightRecord(order_id=order2.id, stage="collection", weight_kg=Decimal("51.200")))
 
-        # Order 3: Delivered (Rohit's copper sold to Pimpri Scrap)
+        # Order 3: Delivered
         copper_listing = created_listings[8]
         offer3 = Offer(
             listing_id=copper_listing.id,
@@ -579,7 +735,7 @@ def seed() -> None:
         db.add(WeightRecord(order_id=order3.id, stage="collection", weight_kg=Decimal("14.300")))
         db.add(WeightRecord(order_id=order3.id, stage="delivery", weight_kg=Decimal("13.950")))
 
-        # Order 4: Completed (Ananya's aluminium sold to Sahyadri Recyclers)
+        # Order 4: Completed
         alu_listing = created_listings[11]
         offer4 = Offer(
             listing_id=alu_listing.id,
@@ -634,7 +790,7 @@ def seed() -> None:
         db.add(WeightRecord(order_id=order4.id, stage="collection", weight_kg=Decimal("18.800")))
         db.add(WeightRecord(order_id=order4.id, stage="delivery", weight_kg=Decimal("18.400")))
 
-        # Order 5: Completed (Sunil's HDPE sold to Pune Central Aggregators)
+        # Order 5: Completed
         hdpe_listing = created_listings[17]
         offer5 = Offer(
             listing_id=hdpe_listing.id,
@@ -689,35 +845,65 @@ def seed() -> None:
         db.add(WeightRecord(order_id=order5.id, stage="collection", weight_kg=Decimal("302.000")))
         db.add(WeightRecord(order_id=order5.id, stage="delivery", weight_kg=Decimal("298.500")))
 
-        # Add pending offers on open listings
-        open_newspaper = created_listings[0]
-        offer_pending1 = Offer(
-            listing_id=open_newspaper.id,
-            buyer_id=user_map["sunil.scrap@example.com"].id,
-            quantity_kg=Decimal("28.500"),
-            price_per_kg=Decimal("14.00"),
-            status="pending",
+        # Pending offers
+        db.add(
+            Offer(
+                listing_id=created_listings[0].id,
+                buyer_id=user_map["sunil.scrap@example.com"].id,
+                quantity_kg=Decimal("28.500"),
+                price_per_kg=Decimal("14.00"),
+                status="pending",
+            )
         )
-        db.add(offer_pending1)
+        db.add(
+            Offer(
+                listing_id=created_listings[1].id,
+                buyer_id=user_map["pimpri.scrap@example.com"].id,
+                quantity_kg=Decimal("35.000"),
+                price_per_kg=Decimal("11.50"),
+                status="pending",
+            )
+        )
+        db.flush()
 
-        open_cardboard = created_listings[1]
-        offer_pending2 = Offer(
-            listing_id=open_cardboard.id,
-            buyer_id=user_map["pimpri.scrap@example.com"].id,
-            quantity_kg=Decimal("35.000"),
-            price_per_kg=Decimal("11.50"),
-            status="pending",
-        )
-        db.add(offer_pending2)
+        print("Seeding 5 requirements and generating match notifications...")
+        requirements_data = [
+            # 1. Sunil Scrap (reseller) wants Cardboard in Wakad (411057)
+            ("sunil.scrap@example.com", "cardboard", "100.000", "13.00", "411057"),
+            # 2. Maharashtra Eco (reseller) wants Scrap Iron in Baner (411045)
+            ("maha.eco@example.com", "iron", "250.000", "35.00", "411045"),
+            # 3. Pimpri Scrap Mart (reseller) wants Steel in Pimpri (411018)
+            ("pimpri.scrap@example.com", "steel", "150.000", "75.00", "411018"),
+            # 4. Pune Biogas (processor) wants Food Waste in Hadapsar (411028)
+            ("pune.biogas@example.com", "food_waste", "500.000", "1.50", "411028"),
+            # 5. EcoCompost Pune (processor) wants Garden Waste in Baner (411045)
+            ("ecocompost.pune@example.com", "garden_waste", "300.000", "0.50", "411045"),
+        ]
+
+        for b_email, c_code, q_kg, max_p, p_code in requirements_data:
+            buyer = user_map[b_email]
+            cat = cat_map[c_code]
+            req_item = Requirement(
+                buyer_id=buyer.id,
+                category_id=cat.id,
+                quantity_kg=Decimal(q_kg),
+                max_price_per_kg=Decimal(max_p),
+                pincode=p_code,
+                status="open",
+            )
+            db.add(req_item)
+            db.flush()
+            # Generate matching notifications
+            MatchingService.match_new_requirement(db, req_item)
 
         db.commit()
         print("\n=== Demo Seed Completed Successfully ===")
         print("NOTE: All data is demo data; prices and figures are illustrative.\n")
         print("Demo Logins (Password for all accounts: " + DEMO_PASSWORD + "):")
-        print("-" * 70)
+        print("-" * 75)
         for name, email, _phone, role, area, pincode in users_data:
-            print(f"[{role.upper():11s}] {name:26s} | {email:26s} | {area} ({pincode})")
-        print("-" * 70)
+            print(f"[{role.upper():11s}] {name:24s} | {email:28s} | {area} ({pincode})")
+        print("-" * 75)
 
     finally:
         db.close()

@@ -11,7 +11,7 @@ class UserRegisterRequest(BaseModel):
     email: str = Field(..., min_length=5, max_length=255, pattern=EMAIL_PATTERN)
     phone: str = Field(..., min_length=10, max_length=15)
     password: str = Field(..., min_length=6, max_length=100)
-    role: str = Field(..., pattern="^(individual|reseller|aggregator|recycler)$")
+    role: str = Field(..., pattern="^(individual|reseller|aggregator|recycler|processor|business)$")
     area: str = Field(..., min_length=2, max_length=100)
     pincode: str = Field(..., min_length=6, max_length=10)
 

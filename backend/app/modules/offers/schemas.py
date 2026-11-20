@@ -8,7 +8,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class OfferCreateRequest(BaseModel):
     quantity_kg: Decimal = Field(..., gt=0)
-    price_per_kg: Decimal = Field(..., gt=0)
+    price_per_kg: Decimal = Field(
+        ..., ge=Decimal("-10000.00"), le=Decimal("1000000.00")
+    )
 
 
 class OfferResponse(BaseModel):

@@ -10,4 +10,7 @@ class CategoryResponse(BaseModel):
     code: str
     name: str
     unit: str
+    stream: str
+    allows_zero_or_negative_price: bool
+    expiry_hours: int | None = None
     is_active: bool

@@ -14,9 +14,12 @@ from app.core.database import get_db
 from app.modules.auth.router import router as auth_router
 from app.modules.catalog.router import router as catalog_router
 from app.modules.listings.router import router as listings_router
+from app.modules.notifications.router import router as notifications_router
 from app.modules.offers.router import router as offers_router
 from app.modules.orders.router import router as orders_router
+from app.modules.requirements.router import router as requirements_router
 from app.modules.stats.router import router as stats_router
+from app.modules.tracking.router import router as tracking_router
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +83,10 @@ app.include_router(catalog_router)
 app.include_router(listings_router)
 app.include_router(offers_router)
 app.include_router(orders_router)
+app.include_router(notifications_router)
+app.include_router(requirements_router)
 app.include_router(stats_router)
+app.include_router(tracking_router)
 
 
 # Health checks

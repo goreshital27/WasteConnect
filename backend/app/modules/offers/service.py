@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 from app.modules.listings.models import Listing
@@ -28,6 +29,21 @@ class OfferService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail={"code": "LISTING_NOT_OPEN", "detail": "Listing is not open for offers"},
             )
+
+        now = datetime.now(UTC)
+        if listing.expires_at:
+            exp = listing.expires_at
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=UTC)
+            if exp <= now:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "code": "LISTING_EXPIRED",
+                        "detail": "Listing has expired and cannot receive offers",
+                    },
+                )
+
         if listing.seller_id == buyer_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

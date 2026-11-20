@@ -20,8 +20,10 @@ from app.main import app as fastapi_app  # noqa: E402
 from app.modules.auth.models import User  # noqa: F401, E402
 from app.modules.catalog.models import WasteCategory  # noqa: F401, E402
 from app.modules.listings.models import Listing  # noqa: F401, E402
+from app.modules.notifications.models import Notification  # noqa: F401, E402
 from app.modules.offers.models import Offer  # noqa: F401, E402
 from app.modules.orders.models import Order, OrderStatusHistory, WeightRecord  # noqa: F401, E402
+from app.modules.requirements.models import Requirement  # noqa: F401, E402
 
 # SQLite test engine
 test_engine = create_engine(
